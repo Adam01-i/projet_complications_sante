@@ -1,177 +1,310 @@
-# Prédiction des complications de santé à 6 mois
+# Projet Complications de Santé
 
-Projet de machine learning (classification binaire) prédisant si un patient
-développera une complication de santé dans les 6 mois, à partir de données
-cliniques (tension, glycémie, HbA1c, cholestérol, comorbidités, mode de
-vie...).
+<p align="center">
+  <img src="outputs/figures/target_distribution.png" alt="Distribution de la cible" width="720" />
+</p>
 
-## Pourquoi ce projet
+## Résumé du projet
 
-Projet initialement réalisé sous forme d'un unique notebook exploratoire de
-137 cellules. Cette version est une refonte complète : code source réutilisable
-dans `src/`, notebook de rapport nettoyé, artefacts de modèle validés, et
-documentation.
+Ce projet a pour objectif de prédire le risque qu’un patient développe une complication de santé dans les 6 mois à partir de données cliniques, biométriques et comportementales. Il s’inscrit dans une logique d’aide à la décision médicale, en s’appuyant sur l’analyse exploratoire de données et la modélisation supervisée.
 
-## Structure du repo
+L’architecture du projet est pensée pour être reproductible, compréhensible et exploitable : nettoyage des données, comparaison de plusieurs modèles, sélection du meilleur modèle, sauvegarde des artefacts, et inférence sur de nouveaux patients.
 
-```
-.
-├── data/
-│   ├── raw/                     # CSV brut (source)
-│   └── processed/                # dataset nettoyé (généré, non versionné)
-├── src/
-│   ├── data_cleaning.py          # nettoyage du dataset (fonctions unitaires)
-│   ├── train_model.py            # entraînement, comparaison, sauvegarde du modèle
-│   └── predict.py                # inférence sur un nouveau patient
-├── notebooks/
-│   └── rapport_projet.ipynb      # rapport lisible (exploration + modélisation)
-├── models/                       # artefacts générés (.pkl, metrics.json)
-├── outputs/figures/               # graphiques générés à partir des vraies données
-├── docs/
-│   └── exemple_patient.json      # exemple d'entrée pour predict.py
-├── requirements.txt
-├── .gitignore
-└── LICENSE
-```
+---
 
-## Installation
+## Objectifs métier et techniques
 
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows : .venv\Scripts\activate
-pip install -r requirements.txt
-```
+### Objectifs métier
 
-## Utilisation
+- identifier les patients à risque élevé de complication à 6 mois ;
+- détecter les facteurs associés au risque clinique ;
+- fournir un outil de décision basé sur des variables explicatives ;
+- exploiter un jeu de données hétérogène et bruité, proche d’un contexte réel.
 
-**1. Nettoyer les données**
-```bash
-cd src
-python data_cleaning.py ../data/raw/projet3_sante_complications.csv ../data/processed/dataset_clean.csv
-```
+### Objectifs techniques
 
-**2. Entraîner le modèle**
-```bash
-python train_model.py --data ../data/raw/projet3_sante_complications.csv --output-dir ../models
-```
-Génère `models/modele_final.pkl`, `models/feature_columns.pkl` et
-`models/metrics.json`.
+- nettoyer automatiquement un dataset brut et incohérent ;
+- transformer des colonnes textuelles en formats exploitables ;
+- comparer des modèles de classification binaire ;
+- sélectionner le modèle le plus pertinent selon une métrique robuste ;
+- générer un artefact prêt à l’emploi pour la prédiction.
 
-**3. Prédire pour un nouveau patient**
-```bash
-python predict.py --model ../models/modele_final.pkl \
-                   --features ../models/feature_columns.pkl \
-                   --input ../docs/exemple_patient.json
-```
+---
 
-## Données et nettoyage
+## Aperçu du dataset
 
-Le CSV source (1510 lignes) contient des valeurs volontairement "sales" :
-espaces parasites dans les noms de colonnes, virgules décimales (`50,4`),
-unités mélangées au texte (`145 mg/L`), préfixes/suffixes (`age:88`, `86 ans`),
-catégories de sexe non standardisées (`M`, `Femme`, `h`, `homme`...), et
-incohérences physiologiques (tension systolique ≤ diastolique).
+Le projet utilise un fichier CSV de patients avec des variables telles que :
 
-Après nettoyage (`src/data_cleaning.py`) : **1400 patients, 22 variables**,
-aucune valeur manquante, aucun doublon.
+- âge ;
+- sexe ;
+- tension systolique et diastolique ;
+- glycémie à jeun ;
+- HbA1c ;
+- cholestérol LDL / HDL ;
+- triglycérides ;
+- IMC ;
+- tabagisme ;
+- activité physique ;
+- adhérence au traitement ;
+- score de comorbidité ;
+- variables de suivi médical.
 
-La cible `complication_6m` est déséquilibrée :
+La cible est une variable binaire :
 
-![Distribution de la cible](outputs/figures/target_distribution.png)
+- 0 : pas de complication dans les 6 mois ;
+- 1 : complication détectée dans les 6 mois.
 
-- Complication (1) : **79.2 %**
-- Pas de complication (0) : **20.8 %**
-
-Matrice de corrélation des variables numériques :
-
-![Matrice de corrélation](outputs/figures/correlation_matrix.png)
-
-Âge et HbA1c selon le statut de complication :
-
-![Âge et HbA1c](outputs/figures/age_hba1c_distribution.png)
-
-## Modélisation
-
-Trois modèles sont comparés : **Logistic Regression**, **Random Forest**,
-**Gradient Boosting**, dans un `Pipeline` scikit-learn (imputation médiane
-apprise sur le train uniquement + gestion du déséquilibre de classes via
-**SMOTE**, appliqué uniquement sur les plis d'entraînement).
-
-Résultats obtenus lors de l'exécution originale du notebook fourni, avec
-SMOTE réellement exécuté (sélection du "meilleur" modèle par **accuracy**,
-critère utilisé dans cette version d'origine) :
-
-| Modèle | Accuracy | F1 macro |
-|---|---|---|
-| Logistic Regression + SMOTE | 0.786 | 0.71 |
-| Random Forest + SMOTE | **0.821** | 0.66 |
-| Gradient Boosting + SMOTE | 0.821 | **0.71** |
-
-Modèle retenu à l'époque (accuracy la plus haute, premier trouvé) : **Random
-Forest + SMOTE** — c'est l'artefact `modele_final.pkl` fourni au départ pour
-cette refonte.
-
-`src/train_model.py` (code de production réécrit) change volontairement le
-**critère de sélection : F1 macro plutôt qu'accuracy**, plus pertinent sur un
-jeu déséquilibré (l'accuracy favorise artificiellement les modèles qui
-prédisent surtout la classe majoritaire). Avec ce critère et en cas d'égalité,
-c'est le **Logistic Regression + SMOTE** qui serait retenu (F1 macro = 0.71,
-premier modèle à atteindre ce score). **Ce choix diffère donc potentiellement
-du modèle d'origine** — assumé ici comme une amélioration méthodologique, à
-garder en tête si vous comparez les deux exécutions.
-
-> ⚠️ **Note d'exécution** : l'environnement utilisé pour valider cette refonte
-> n'a pas d'accès réseau et n'a donc pas pu installer `imbalanced-learn` pour
-> ré-exécuter la variante SMOTE. Le pipeline complet (`src/train_model.py`,
-> `notebooks/rapport_projet.ipynb`) a néanmoins été exécuté de bout en bout
-> avec succès, en utilisant automatiquement le repli `class_weight="balanced"`
-> quand `imbalanced-learn` est absent (voir `models/metrics.json`, généré par
-> cette exécution de repli — modèle retenu dans ce cas : Logistic Regression,
-> F1 macro 0.72). Les chiffres du tableau ci-dessus proviennent de
-> l'exécution originale du notebook fourni par vous (SMOTE réellement
-> exécuté), pas d'une exécution que j'ai faite moi-même. **Chez vous**, avec
-> `pip install -r requirements.txt`, `train_model.py` utilisera directement
-> SMOTE.
-
-## Bugs corrigés par rapport à la version originale
-
-- Import dupliqué de `matplotlib.pyplot`.
-- Étape de sélection des "11 colonnes" annoncée en markdown mais jamais
-  appliquée (code mort) : supprimée.
-- Nettoyage de `hba1c` : l'étape "traitement des valeurs manquantes" annoncée
-  correspondait à une cellule vide jamais exécutée ; la fonction
-  `clean_hba1c` impute désormais explicitement les valeurs manquantes.
-- **Fuite mineure train/test** : le notebook original imputait les NaN
-  restants de `X_test` avec la médiane calculée sur `X_test` lui-même
-  (`X_test.fillna(X_test.median())`). Corrigé : l'imputation est apprise
-  uniquement sur `X_train` via `SimpleImputer` intégré au pipeline.
-- **Deux rounds de modélisation dupliqués** (mêmes 3 modèles entraînés deux
-  fois, variables réécrasées `rf_model`, `results`...) : consolidés en un seul
-  pipeline final (SMOTE), le round baseline étant conservé à titre de
-  comparaison pédagogique dans le notebook de rapport.
-- **`scaler.pkl` orphelin** : ajusté sur les données du round 1 (baseline),
-  il n'était utilisé par aucun code au moment de l'inférence avec le modèle
-  final (round 2, SMOTE, qui n'a pas de scaler dans son pipeline). Il n'est
-  plus généré séparément : le scaling nécessaire (régression logistique) est
-  désormais intégré au pipeline sauvegardé.
-- `random_state=42` uniformisé sur tous les modèles et le split (déjà présent
-  dans l'original, conservé).
-
-## Ce qu'il reste à faire
-
-- Si vous voulez reproduire exactement les résultats SMOTE indiqués
-  ci-dessus : `pip install -r requirements.txt` (accès réseau requis, non
-  disponible dans l'environnement où cette refonte a été validée) puis
-  relancer `python src/train_model.py`.
-- Remplacer les métadonnées de `LICENSE` (nom de l'auteur) si besoin.
-- `git init`, ajouter les fichiers, commit, puis créer le dépôt GitHub et
-  `git push`.
+---
 
 ## Stack technique
 
-Python 3.12 · pandas · scikit-learn · imbalanced-learn (SMOTE) · joblib ·
-matplotlib
+- Python 3.12+
+- pandas
+- NumPy
+- scikit-learn
+- imbalanced-learn (SMOTE)
+- matplotlib
+- joblib
+- Jupyter Notebook
+
+---
+
+## Structure du dépôt
+
+```text
+.
+├── data/
+│   ├── raw/
+│   │   └── projet3_sante_complications.csv
+│   └── processed/
+│       └── dataset_clean.csv
+├── docs/
+│   └── exemple_patient.json
+├── models/
+│   ├── metrics.json
+│   ├── modele_final.pkl
+│   └── feature_columns.pkl
+├── notebooks/
+│   └── rapport_projet.ipynb
+├── outputs/
+│   └── figures/
+│       ├── age_hba1c_distribution.png
+│       ├── correlation_matrix.png
+│       └── target_distribution.png
+├── src/
+│   ├── data_cleaning.py
+│   ├── predict.py
+│   └── train_model.py
+├── .gitignore
+├── LICENSE
+├── README.md
+├── requirements.txt
+└── .venv/
+```
+
+---
+
+## Prérequis
+
+Avant de démarrer, vérifiez que les éléments suivants sont installés :
+
+- Python 3.10+ (recommandé : Python 3.12)
+- pip
+- git
+- un terminal Bash / zsh / PowerShell
+
+---
+
+## 1) Cloner le projet
+
+```bash
+git clone https://github.com/Adam01-i/projet_complications_sante.git
+cd projet_complications_sante
+```
+
+Si le dépôt est déjà présent localement, vous pouvez simplement vous placer dans le dossier du projet :
+
+```bash
+cd /chemin/vers/projet_complications_sante
+```
+
+---
+
+## 2) Créer un environnement virtuel
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Sous Windows PowerShell :
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+---
+
+## 3) Installer les dépendances
+
+```bash
+pip install -r requirements.txt
+```
+
+Cela installera les librairies nécessaires au nettoyage des données, à la modélisation, au plotting et au notebook.
+
+---
+
+## 4) Nettoyer les données
+
+Depuis la racine du projet :
+
+```bash
+python3 src/data_cleaning.py data/raw/projet3_sante_complications.csv data/processed/dataset_clean.csv
+```
+
+Cette étape nettoie les valeurs incohérentes, normalise les colonnes, gère les variables textuelles et produit un dataset exploitable pour l’apprentissage.
+
+---
+
+## 5) Entraîner le modèle
+
+```bash
+python3 src/train_model.py --data data/raw/projet3_sante_complications.csv --output-dir models
+```
+
+Le script entraîne plusieurs modèles, compare leurs performances et sauvegarde le meilleur dans le dossier `models`.
+
+### Fichiers générés
+
+- `models/modele_final.pkl` : modèle final sauvegardé
+- `models/feature_columns.pkl` : colonnes utilisées par le modèle
+- `models/metrics.json` : métriques d’évaluation et résultats de comparaison
+
+---
+
+## 6) Faire une prédiction sur un patient
+
+Un exemple de patient est fourni dans le dossier `docs` :
+
+```bash
+python3 src/predict.py \
+  --model models/modele_final.pkl \
+  --features models/feature_columns.pkl \
+  --input docs/exemple_patient.json
+```
+
+La sortie renvoie une prédiction binaire et la probabilité associée de complication.
+
+---
+
+## Exemple de sortie
+
+```json
+{
+  "prediction": 0,
+  "probabilite_complication": 0.3965
+}
+```
+
+---
+
+## Pipeline de traitement des données
+
+Le workflow du projet suit cette logique :
+
+1. lecture du CSV brut ;
+2. normalisation des noms de colonnes ;
+3. nettoyage des valeurs textuelles et numériques ;
+4. gestion des incohérences physiologiques ;
+5. nettoyage de la variable cible ;
+6. validation du dataset prêt pour le ML ;
+7. split train/test ;
+8. entraînement de plusieurs modèles ;
+9. sélection du meilleur modèle selon F1 macro ;
+10. sauvegarde et inférence.
+
+---
+
+## Analyse exploratoire
+
+### Distribution de la cible
+
+<p align="center">
+  <img src="outputs/figures/target_distribution.png" alt="Distribution de la cible" width="760" />
+</p>
+
+Cette figure montre la distribution de la variable cible et confirme la présence d’un déséquilibre de classes, ce qui justifie l’utilisation d’un critère de performance robuste comme le F1 macro.
+
+### Matrice de corrélation
+
+<p align="center">
+  <img src="outputs/figures/correlation_matrix.png" alt="Matrice de corrélation" width="760" />
+</p>
+
+La matrice de corrélation permet d’observer les relations entre variables numériques et d’identifier les corrélations fortes ou les redondances potentielles.
+
+### Âge et HbA1c selon le statut de complication
+
+<p align="center">
+  <img src="outputs/figures/age_hba1c_distribution.png" alt="Age et HbA1c selon le statut" width="760" />
+</p>
+
+Cette visualisation met en évidence la relation entre certains indicateurs cliniques et la survenue de complications, ce qui aide à interpréter la décision du modèle.
+
+---
+
+## Modélisation
+
+Le projet compare plusieurs algorithmes de classification binaire :
+
+- Logistic Regression
+- Random Forest
+- Gradient Boosting
+
+Le modèle final est sélectionné selon une approche orientée performance sur données déséquilibrées, en privilégiant le F1 macro plutôt que la simple précision. Cela permet de mieux évaluer les performances sur les deux classes même lorsque la classe positive est minoritaire.
+
+Quand `imbalanced-learn` est disponible, le pipeline utilise SMOTE pour rééquilibrer les classes sur le jeu d’entraînement. Si la dépendance n’est pas installée, un mécanisme de repli compatible est appliqué automatiquement.
+
+---
+
+## Résultats attendus
+
+Les performances sont suivies dans le fichier `models/metrics.json` et peuvent être interprétées selon :
+
+- Accuracy
+- F1 macro
+- matrice de confusion
+- classification report
+
+La sélection du meilleur modèle est faite automatiquement à la fin de l’entraînement.
+
+---
+
+## Bonnes pratiques de développement
+
+- toujours travailler depuis la racine du projet ;
+- utiliser un environnement virtuel dédié ;
+- ne pas modifier les artefacts générés sans revalider le modèle ;
+- garder les données brutes dans `data/raw` ;
+- conserver les graphiques et les résultats dans `outputs/` et `models/` ;
+- documenter les changements avant d’ajuster le pipeline.
+
+---
+
+## Contribution
+
+Le projet est structuré pour être réutilisable et extensible. Les scripts principaux sont centralisés dans `src/`, les analyses exploratoires dans `notebooks/`, et les artefacts générés dans `models/` et `outputs/`.
+
+---
 
 ## Licence
 
-MIT — voir [LICENSE](LICENSE).
+Ce projet est distribué sous licence MIT. Voir le fichier [LICENSE](LICENSE).
+
+---
+
+## Contact
+
+Pour toute question, amélioration ou collaboration, vous pouvez ouvrir une issue ou utiliser le dépôt GitHub associé au projet.

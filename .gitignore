@@ -1,0 +1,24 @@
+# Environnements virtuels
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Artefacts de modèle générés (regénérés via src/train_model.py)
+models/*.pkl
+models/metrics.json
+
+# Données intermédiaires générées (regénérées via src/data_cleaning.py)
+data/processed/*.csv
+
+# OS / éditeurs
+.DS_Store
+.idea/
+.vscode/
+
+# Logs
+*.log

@@ -1,0 +1,23 @@
+{
+  "age": 62,
+  "sexe": "f",
+  "imc": 29.4,
+  "tension_systolique": 152,
+  "tension_diastolique": 94,
+  "frequence_cardiaque": 88,
+  "glycemie_jeun": 145.2,
+  "hba1c": 7.8,
+  "cholesterol_ldl": 160.0,
+  "cholesterol_hdl": 42.0,
+  "triglycerides": 210.0,
+  "duree_hospitalisation_jours": 4,
+  "nb_hospitalisations_12m": 1,
+  "nb_medicaments": 5,
+  "adherence_traitement_pct": 78.0,
+  "activite_physique_min_semaine": 60,
+  "tabagisme_statut": 1,
+  "consommation_alcool_unites_semaine": 2,
+  "score_comorbidite": 3,
+  "score_stress": 6,
+  "hypertension": 1
+}
